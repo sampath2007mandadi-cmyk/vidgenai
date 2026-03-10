@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VidGenAI — AI Video Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080810;
+      --surface: #0f0f1a;
+      --card: #13131f;
+      --border: rgba(255,255,255,0.07);
+      --accent: #7c3aff;
+      --accent2: #ff3a8c;
+      --accent3: #3affda;
+      --text: #f0f0ff;
+      --muted: #7070a0;
+      --glow: 0 0 40px rgba(124,58,255,0.3);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 5%;
+      background: rgba(8,8,16,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 1.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--accent); color: #fff;
+      border: none; padding: 0.6rem 1.4rem;
+      border-radius: 8px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .nav-cta:hover { background: #6929e0; box-shadow: var(--glow); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 8rem 5% 4rem;
+      position: relative; overflow: hidden;
+    }
+    .hero-orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none;
+    }
+    .orb1 { width: 500px; height: 500px; background: rgba(124,58,255,0.15); top: -100px; left: -100px; animation: float 8s ease-in-out infinite; }
+    .orb2 { width: 400px; height: 400px; background: rgba(255,58,140,0.1); bottom: -50px; right: -50px; animation: float 10s ease-in-out infinite reverse; }
+    .orb3 { width: 300px; height: 300px; background: rgba(58,255,218,0.08); top: 50%; left: 50%; transform: translate(-50%,-50%); animation: pulse 6s ease-in-out infinite; }
+
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+    @keyframes pulse { 0%,100% { opacity: 0.5; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1.2); } }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(124,58,255,0.15); border: 1px solid rgba(124,58,255,0.3);
+      color: #a78bfa; padding: 0.4rem 1rem; border-radius: 100px;
+      font-size: 0.8rem; font-weight: 500; margin-bottom: 2rem;
+      animation: fadeUp 0.6s ease both;
+    }
+    .badge-dot { width: 6px; height: 6px; background: var(--accent3); border-radius: 50%; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.8rem, 7vw, 6rem);
+      font-weight: 800; line-height: 1.05;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    h1 .grad {
+      background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub {
+      max-width: 560px; color: var(--muted); font-size: 1.1rem;
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+    .hero-btns {
+      display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; padding: 0.9rem 2rem;
+      border-radius: 10px; font-size: 1rem; font-weight: 500;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .btn-primary::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(124,58,255,0.4); }
+    .btn-primary:hover::after { opacity: 1; }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); padding: 0.9rem 2rem;
+      border-radius: 10px; font-size: 1rem;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: all 0.3s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── DEMO AREA ── */
+    .demo-area {
+      margin-top: 4rem; width: 100%; max-width: 800px;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+    .demo-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+    }
+    .demo-bar {
+      background: var(--surface); padding: 1rem 1.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .demo-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .d1 { background: #ff5f57; } .d2 { background: #ffbd2e; } .d3 { background: #28c840; }
+    .demo-title { margin-left: auto; margin-right: auto; color: var(--muted); font-size: 0.85rem; }
+    .demo-content { padding: 2rem; }
+    .demo-input-wrap {
+      display: flex; gap: 0.8rem; margin-bottom: 1.5rem;
+    }
+    .demo-input {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 0.9rem 1.2rem; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    .demo-input:focus { border-color: var(--accent); }
+    .demo-input::placeholder { color: var(--muted); }
+    .demo-gen-btn {
+      background: var(--accent); color: #fff; border: none;
+      padding: 0.9rem 1.5rem; border-radius: 10px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-weight: 500;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .demo-gen-btn:hover { background: #6929e0; }
+    .demo-gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .video-preview {
+      background: var(--surface); border-radius: 12px;
+      aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border); position: relative; overflow: hidden;
+    }
+    .preview-placeholder { text-align: center; color: var(--muted); }
+    .preview-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .generating {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(124,58,255,0.1), rgba(255,58,140,0.1));
+      display: none; align-items: center; justify-content: center; flex-direction: column; gap: 1rem;
+    }
+    .generating.active { display: flex; }
+    .gen-bar {
+      width: 200px; height: 4px; background: var(--border); border-radius: 4px; overflow: hidden;
+    }
+    .gen-fill {
+      height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 4px; transition: width 0.1s;
+    }
+    .gen-text { color: var(--muted); font-size: 0.85rem; }
+
+    /* ── FEATURES ── */
+    section { padding: 6rem 5%; }
+    .section-label {
+      text-align: center; color: var(--accent); font-size: 0.8rem;
+      font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-family: 'Syne', sans-serif; font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800; text-align: center; margin-bottom: 1rem;
+    }
+    .section-sub { text-align: center; color: var(--muted); max-width: 500px; margin: 0 auto 4rem; }
+
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem; max-width: 1100px; margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-card:hover { transform: translateY(-4px); border-color: rgba(124,58,255,0.3); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 1.2rem;
+    }
+    .feature-card h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: flex; gap: 2rem; max-width: 900px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+    .step {
+      flex: 1; min-width: 200px; text-align: center; padding: 2rem 1rem;
+      position: relative;
+    }
+    .step:not(:last-child)::after {
+      content: '→'; position: absolute; right: -1rem; top: 2.5rem;
+      color: var(--accent); font-size: 1.5rem;
+    }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem;
+      margin: 0 auto 1rem; box-shadow: 0 0 30px rgba(124,58,255,0.4);
+    }
+    .step h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .step p { color: var(--muted); font-size: 0.85rem; }
+
+    /* ── PRICING ── */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem; max-width: 1000px; margin: 0 auto;
+    }
+    .pricing-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2rem; position: relative;
+      transition: all 0.3s;
+    }
+    .pricing-card.popular {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(124,58,255,0.1), rgba(255,58,140,0.05));
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; padding: 0.3rem 1rem; border-radius: 100px;
+      font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+    }
+    .plan-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .plan-price {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.5rem;
+      margin-bottom: 0.3rem;
+    }
+    .plan-price span { font-size: 1rem; color: var(--muted); font-weight: 400; font-family: 'DM Sans', sans-serif; }
+    .plan-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .plan-features { list-style: none; margin-bottom: 2rem; }
+    .plan-features li {
+      padding: 0.4rem 0; color: var(--muted); font-size: 0.9rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .plan-features li::before { content: '✓'; color: var(--accent3); font-weight: 700; }
+    .plan-btn {
+      width: 100%; padding: 0.9rem; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; border: none;
+    }
+    .plan-btn-outline {
+      background: transparent; border: 1px solid var(--border); color: var(--text);
+    }
+    .plan-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .plan-btn-filled {
+      background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    }
+    .plan-btn-filled:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(124,58,255,0.4); }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 3rem 5%;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: gap;
+    }
+    .footer-logo {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .footer-copy { color: var(--muted); font-size: 0.85rem; }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px); z-index: 200;
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2.5rem; width: 90%; max-width: 420px;
+      position: relative; animation: fadeUp 0.3s ease;
+    }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1rem;
+      background: none; border: none; color: var(--muted);
+      font-size: 1.3rem; cursor: pointer; line-height: 1;
+    }
+    .modal h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .modal-input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 0.9rem 1.2rem; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none;
+      margin-bottom: 1rem; transition: border-color 0.2s;
+    }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-btn {
+      width: 100%; padding: 0.9rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .modal-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(124,58,255,0.4); }
+
+    /* ── STATS ── */
+    .stats { background: var(--surface); }
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 2rem; max-width: 900px; margin: 0 auto; text-align: center;
+    }
+    .stat-num {
+      font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .stat-label { color: var(--muted); font-size: 0.9rem; }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .step:not(:last-child)::after { display: none; }
+      footer { flex-direction: column; gap: 1rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">VidGenAI</div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <button class="nav-cta" onclick="openModal()">Get Started Free</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-orb orb1"></div>
+  <div class="hero-orb orb2"></div>
+  <div class="hero-orb orb3"></div>
+
+  <div class="badge"><span class="badge-dot"></span> Powered by Advanced AI Models</div>
+
+  <h1>Generate <span class="grad">Stunning Videos</span><br/>with AI in Seconds</h1>
+  <p class="hero-sub">Type a prompt or upload an image — our AI creates professional videos instantly. No editing skills needed.</p>
+
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="openModal()">🚀 Start for Free</button>
+    <button class="btn-secondary" onclick="document.querySelector('.demo-area').scrollIntoView({behavior:'smooth'})">▶ See Demo</button>
+  </div>
+
+  <!-- LIVE DEMO -->
+  <div class="demo-area">
+    <div class="demo-box">
+      <div class="demo-bar">
+        <div class="demo-dot d1"></div>
+        <div class="demo-dot d2"></div>
+        <div class="demo-dot d3"></div>
+        <div class="demo-title">VidGenAI Studio</div>
+      </div>
+      <div class="demo-content">
+        <div class="demo-input-wrap">
+          <input class="demo-input" id="promptInput" type="text" placeholder="e.g. A futuristic city at sunset with flying cars..."/>
+          <button class="demo-gen-btn" id="genBtn" onclick="startGenDemo()">Generate ✨</button>
+        </div>
+        <div class="video-preview" id="videoPreview">
+          <div class="preview-placeholder">
+            <div class="preview-icon">🎬</div>
+            <div>Your video will appear here</div>
+          </div>
+          <div class="generating" id="generatingDiv">
+            <div style="font-size:2rem">⚡</div>
+            <div class="gen-bar"><div class="gen-fill" id="genFill"></div></div>
+            <div class="gen-text" id="genText">Initializing AI models...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats">
+  <div class="stats-grid">
+    <div><div class="stat-num">50K+</div><div class="stat-label">Videos Generated</div></div>
+    <div><div class="stat-num">12K+</div><div class="stat-label">Happy Users</div></div>
+    <div><div class="stat-num">4.9★</div><div class="stat-label">Average Rating</div></div>
+    <div><div class="stat-num">99.9%</div><div class="stat-label">Uptime</div></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">Features</div>
+  <h2>Everything You Need to Create</h2>
+  <p class="section-sub">Professional AI video generation tools packed into one simple platform.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(124,58,255,0.15)">✍️</div>
+      <h3>Text to Video</h3>
+      <p>Describe any scene in plain text and watch our AI bring it to life with stunning detail and motion.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(255,58,140,0.15)">🖼️</div>
+      <h3>Image to Video</h3>
+      <p>Upload any image and our AI animates it into a smooth, cinematic video with natural movement.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(58,255,218,0.15)">⚡</div>
+      <h3>Lightning Fast</h3>
+      <p>Get your video in under 60 seconds. Our optimized AI pipeline delivers results at record speed.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(124,58,255,0.15)">🎨</div>
+      <h3>Multiple Styles</h3>
+      <p>Choose from cinematic, anime, realistic, watercolor, 3D and many more visual styles.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(255,58,140,0.15)">📱</div>
+      <h3>Any Format</h3>
+      <p>Export in 16:9, 9:16, or 1:1 — perfect for YouTube, Reels, TikTok, and more.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(58,255,218,0.15)">🔒</div>
+      <h3>Full Ownership</h3>
+      <p>Every video you create is yours. No watermarks on paid plans. Commercial use allowed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="background: var(--surface);">
+  <div class="section-label">Process</div>
+  <h2>How It Works</h2>
+  <p class="section-sub">Generate stunning AI videos in 3 simple steps.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Enter Your Prompt</h3>
+      <p>Type what you want to see or upload a reference image</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>AI Generates</h3>
+      <p>Our AI models process and create your video in seconds</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Download & Share</h3>
+      <p>Export in HD and share anywhere you want</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2>Simple, Transparent Pricing</h2>
+  <p class="section-sub">Start free. Upgrade when you're ready. Cancel anytime.</p>
+
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">₹0 <span>/month</span></div>
+      <div class="plan-desc">Perfect to get started</div>
+      <ul class="plan-features">
+        <li>3 videos per month</li>
+        <li>Text to Video</li>
+        <li>720p quality</li>
+        <li>Watermarked</li>
+      </ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Get Started</button>
+    </div>
+
+    <div class="pricing-card popular">
+      <div class="popular-badge">⭐ Most Popular</div>
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">₹299 <span>/month</span></div>
+      <div class="plan-desc">For content creators</div>
+      <ul class="plan-features">
+        <li>20 videos per month</li>
+        <li>Text + Image to Video</li>
+        <li>1080p quality</li>
+        <li>No watermark</li>
+        <li>Multiple styles</li>
+      </ul>
+      <button class="plan-btn plan-btn-filled" onclick="openModal()">Start Now</button>
+    </div>
+
+    <div class="pricing-card">
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">₹799 <span>/month</span></div>
+      <div class="plan-desc">For power users</div>
+      <ul class="plan-features">
+        <li>100 videos per month</li>
+        <li>All video types</li>
+        <li>4K quality</li>
+        <li>Priority generation</li>
+        <li>Commercial license</li>
+      </ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Go Pro</button>
+    </div>
+
+    <div class="pricing-card">
+      <div class="plan-name">Business</div>
+      <div class="plan-price">₹2,499 <span>/month</span></div>
+      <div class="plan-desc">For teams & agencies</div>
+      <ul class="plan-features">
+        <li>Unlimited videos</li>
+        <li>API access</li>
+        <li>4K + custom sizes</li>
+        <li>Team collaboration</li>
+        <li>Priority support</li>
+      </ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Contact Us</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">VidGenAI</div>
+  <div class="footer-copy">© 2025 VidGenAI. All rights reserved.</div>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Create Your Account</h3>
+    <p>Start generating AI videos for free. No credit card required.</p>
+    <input class="modal-input" type="text" placeholder="Your name"/>
+    <input class="modal-input" type="email" placeholder="Email address"/>
+    <input class="modal-input" type="password" placeholder="Create password"/>
+    <button class="modal-btn">🚀 Create Free Account</button>
+    <p style="text-align:center; color: var(--muted); font-size:0.8rem; margin-top:1rem;">
+      Already have an account? <a href="#" style="color:var(--accent)">Sign in</a>
+    </p>
+  </div>
+</div>
+
+<script>
+  // Demo generation animation
+  function startGenDemo() {
+    const btn = document.getElementById('genBtn');
+    const genDiv = document.getElementById('generatingDiv');
+    const fill = document.getElementById('genFill');
+    const text = document.getElementById('genText');
+    const prompt = document.getElementById('promptInput').value.trim();
+
+    if (!prompt) {
+      document.getElementById('promptInput').focus();
+      return;
+    }
+
+    btn.disabled = true;
+    genDiv.classList.add('active');
+
+    const steps = [
+      [10, 'Analyzing your prompt...'],
+      [25, 'Generating scene composition...'],
+      [45, 'Rendering frames with AI...'],
+      [65, 'Adding motion and lighting...'],
+      [80, 'Enhancing video quality...'],
+      [95, 'Finalizing your video...'],
+      [100, '✨ Video ready!']
+    ];
+
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= steps.length) {
+        clearInterval(interval);
+        setTimeout(() => {
+          genDiv.classList.remove('active');
+          genDiv.innerHTML = `
+            <div style="text-align:center; padding:2rem">
+              <div style="font-size:3rem; margin-bottom:1rem">🎬</div>
+              <div style="color:#f0f0ff; font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; margin-bottom:0.5rem">Video Generated!</div>
+              <div style="color:#7070a0; font-size:0.85rem; margin-bottom:1.5rem">Sign up to download your video in HD</div>
+              <button onclick="openModal()" style="background:linear-gradient(135deg,#7c3aff,#ff3a8c);color:#fff;border:none;padding:0.7rem 1.5rem;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500">Download Free ✨</button>
+            </div>`;
+          genDiv.classList.add('active');
+          btn.disabled = false;
+        }, 800);
+        return;
+      }
+      fill.style.width = steps[i][0] + '%';
+      text.textContent = steps[i][1];
+      i++;
+    }, 600);
+  }
+
+  // Modal
+  function openModal() { document.getElementById('modalOverlay').classList.add('active'); }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+  function closeModalOutside(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+
+  // Enter key on demo
+  document.getElementById('promptInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startGenDemo();
+  });
+</script>
+</body>
+</html>
