@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VidGenAI — AI Image & Video Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080810; --surface: #0f0f1a; --card: #13131f;
+      --border: rgba(255,255,255,0.07); --accent: #7c3aff;
+      --accent2: #ff3a8c; --accent3: #3affda;
+      --text: #f0f0ff; --muted: #7070a0;
+      --glow: 0 0 40px rgba(124,58,255,0.3);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9999; opacity: 0.4; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 1.2rem 5%; background: rgba(8,8,16,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; border: none; padding: 0.6rem 1.4rem; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .nav-cta:hover { background: #6929e0; box-shadow: var(--glow); }
+
+    .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8rem 5% 4rem; position: relative; overflow: hidden; }
+    .hero-orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+    .orb1 { width: 500px; height: 500px; background: rgba(124,58,255,0.15); top: -100px; left: -100px; animation: float 8s ease-in-out infinite; }
+    .orb2 { width: 400px; height: 400px; background: rgba(255,58,140,0.1); bottom: -50px; right: -50px; animation: float 10s ease-in-out infinite reverse; }
+    .orb3 { width: 300px; height: 300px; background: rgba(58,255,218,0.08); top: 50%; left: 50%; transform: translate(-50%,-50%); animation: pulse 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
+    @keyframes pulse { 0%,100%{opacity:0.5;transform:translate(-50%,-50%) scale(1)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.2)} }
+
+    .badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(124,58,255,0.15); border: 1px solid rgba(124,58,255,0.3); color: #a78bfa; padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.8rem; font-weight: 500; margin-bottom: 2rem; animation: fadeUp 0.6s ease both; }
+    .badge-dot { width: 6px; height: 6px; background: var(--accent3); border-radius: 50%; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.8rem, 7vw, 6rem); font-weight: 800; line-height: 1.05; margin-bottom: 1.5rem; animation: fadeUp 0.6s 0.1s ease both; }
+    h1 .grad { background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { max-width: 560px; color: var(--muted); font-size: 1.1rem; margin-bottom: 2.5rem; animation: fadeUp 0.6s 0.2s ease both; }
+    .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; animation: fadeUp 0.6s 0.3s ease both; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 0.9rem 2rem; border-radius: 10px; font-size: 1rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.3s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(124,58,255,0.4); }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 0.9rem 2rem; border-radius: 10px; font-size: 1rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.3s; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    .stats { padding: 4rem 5%; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto; text-align: center; }
+    .stat-num { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .stat-label { color: var(--muted); font-size: 0.9rem; }
+
+    /* STUDIO */
+    .studio-section { padding: 5rem 5%; background: var(--surface); }
+    .section-label { text-align: center; color: var(--accent); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 1rem; }
+    h2 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; text-align: center; margin-bottom: 1rem; }
+    .section-sub { text-align: center; color: var(--muted); max-width: 500px; margin: 0 auto 3rem; }
+    .studio-wrap { max-width: 860px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.5); }
+    .studio-bar { background: var(--bg); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .d1{background:#ff5f57}.d2{background:#ffbd2e}.d3{background:#28c840}
+    .studio-title { margin: 0 auto; color: var(--muted); font-size: 0.85rem; }
+    .studio-body { padding: 2rem; }
+
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .tab { flex: 1; padding: 0.7rem; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+    .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .style-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+    .style-chip { padding: 0.4rem 0.9rem; border-radius: 100px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+    .style-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(124,58,255,0.1); }
+
+    .input-row { display: flex; gap: 0.8rem; margin-bottom: 1rem; }
+    .studio-input { flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.9rem 1.2rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+    .studio-input:focus { border-color: var(--accent); }
+    .studio-input::placeholder { color: var(--muted); }
+    .gen-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 0.9rem 1.5rem; border-radius: 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; transition: all 0.2s; white-space: nowrap; }
+    .gen-btn:hover { transform: translateY(-2px); box-shadow: var(--glow); }
+    .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; }
+    .upload-area:hover { border-color: var(--accent); }
+    .upload-area input { display: none; }
+    .upload-preview { max-width: 100%; max-height: 180px; border-radius: 8px; margin-top: 1rem; display: none; }
+
+    .result-area { background: var(--surface); border-radius: 12px; min-height: 240px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); position: relative; overflow: hidden; margin-top: 1rem; flex-direction: column; }
+    .result-placeholder { text-align: center; color: var(--muted); padding: 2rem; }
+    .result-placeholder .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+    .progress-wrap { display: none; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem; width: 100%; }
+    .progress-wrap.show { display: flex; }
+    .progress-bar { width: 100%; max-width: 320px; height: 6px; background: var(--border); border-radius: 6px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 6px; transition: width 0.5s ease; }
+    .progress-label { color: var(--muted); font-size: 0.85rem; text-align: center; }
+    .progress-steps { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+    .progress-step { padding: 0.3rem 0.7rem; border-radius: 100px; background: var(--border); color: var(--muted); font-size: 0.75rem; transition: all 0.3s; }
+    .progress-step.done { background: rgba(58,255,218,0.15); color: var(--accent3); }
+    .progress-step.active { background: var(--accent); color: #fff; animation: stepPulse 1s infinite; }
+    @keyframes stepPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+    .result-image { width: 100%; border-radius: 12px; display: none; }
+    .result-actions { display: none; gap: 0.8rem; margin-top: 1rem; justify-content: center; flex-wrap: wrap; }
+    .result-actions.show { display: flex; }
+    .action-btn { padding: 0.6rem 1.2rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; border: none; }
+    .action-dl { background: var(--accent); color: #fff; }
+    .action-dl:hover { background: #6929e0; }
+    .action-re { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .action-re:hover { border-color: var(--accent); color: var(--accent); }
+
+    .error-box { background: rgba(255,58,58,0.1); border: 1px solid rgba(255,58,58,0.3); border-radius: 10px; padding: 1rem 1.2rem; color: #ff6b6b; font-size: 0.85rem; margin-top: 1rem; display: none; line-height: 1.5; }
+    .error-box.show { display: block; }
+
+    .api-status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--muted); margin-bottom: 1rem; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); animation: blink 2s infinite; }
+
+    /* FEATURES */
+    section.features { padding: 6rem 5%; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+    .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; transition: all 0.3s; }
+    .feature-card:hover { transform: translateY(-4px); border-color: rgba(124,58,255,0.3); }
+    .feature-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.2rem; }
+    .feature-card h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+    /* PRICING */
+    section.pricing { padding: 6rem 5%; background: var(--surface); }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; max-width: 1000px; margin: 0 auto; }
+    .pricing-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; position: relative; transition: all 0.3s; }
+    .pricing-card.popular { border-color: var(--accent); background: linear-gradient(135deg, rgba(124,58,255,0.1), rgba(255,58,140,0.05)); }
+    .popular-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; padding: 0.3rem 1rem; border-radius: 100px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .plan-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .plan-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.3rem; }
+    .plan-price span { font-size: 1rem; color: var(--muted); font-weight: 400; font-family: 'DM Sans', sans-serif; }
+    .plan-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .plan-features { list-style: none; margin-bottom: 2rem; }
+    .plan-features li { padding: 0.4rem 0; color: var(--muted); font-size: 0.9rem; display: flex; align-items: center; gap: 0.6rem; }
+    .plan-features li::before { content: '✓'; color: var(--accent3); font-weight: 700; }
+    .plan-btn { width: 100%; padding: 0.9rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; }
+    .plan-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .plan-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .plan-btn-filled { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .plan-btn-filled:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(124,58,255,0.4); }
+
+    footer { border-top: 1px solid var(--border); padding: 3rem 5%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .footer-copy { color: var(--muted); font-size: 0.85rem; }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 200; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: 90%; max-width: 420px; position: relative; animation: fadeUp 0.3s ease; }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; }
+    .modal h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .modal-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.9rem 1.2rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; margin-bottom: 1rem; transition: border-color 0.2s; }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-btn { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500; cursor: pointer; }
+
+    @media(max-width:600px){ .nav-links{display:none} footer{flex-direction:column;text-align:center} }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">VidGenAI</div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#studio">Studio</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <button class="nav-cta" onclick="openModal()">Get Started Free</button>
+</nav>
+
+<section class="hero">
+  <div class="hero-orb orb1"></div>
+  <div class="hero-orb orb2"></div>
+  <div class="hero-orb orb3"></div>
+  <div class="badge"><span class="badge-dot"></span> Powered by FLUX & Stable Diffusion AI</div>
+  <h1>Generate <span class="grad">Stunning Visuals</span><br/>with AI in Seconds</h1>
+  <p class="hero-sub">Type a prompt or upload an image — our AI creates professional images instantly. No skills needed.</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="openModal()">🚀 Start for Free</button>
+    <button class="btn-secondary" onclick="document.getElementById('studio').scrollIntoView({behavior:'smooth'})">▶ Try Studio Live</button>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stats-grid">
+    <div><div class="stat-num">50K+</div><div class="stat-label">Visuals Generated</div></div>
+    <div><div class="stat-num">12K+</div><div class="stat-label">Happy Users</div></div>
+    <div><div class="stat-num">4.9★</div><div class="stat-label">Average Rating</div></div>
+    <div><div class="stat-num">99.9%</div><div class="stat-label">Uptime</div></div>
+  </div>
+</section>
+
+<!-- STUDIO -->
+<section class="studio-section" id="studio">
+  <div class="section-label">Live AI Studio</div>
+  <h2>Try It Right Now — Free</h2>
+  <p class="section-sub">Real AI generation powered by FLUX.1 — the most advanced free AI image model available!</p>
+
+  <div class="studio-wrap">
+    <div class="studio-bar">
+      <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+      <div class="studio-title">VidGenAI Studio — Live ⚡</div>
+    </div>
+    <div class="studio-body">
+      <div class="api-status"><span class="status-dot"></span> FLUX.1 Schnell — Online</div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(event,'text')">✍️ Text to Image</button>
+        <button class="tab" onclick="switchTab(event,'image')">🖼️ Image Remix</button>
+      </div>
+
+      <div class="tab-content active" id="tab-text">
+        <div class="style-row">
+          <div class="style-chip active" onclick="selectStyle(this,'cinematic')">🎬 Cinematic</div>
+          <div class="style-chip" onclick="selectStyle(this,'anime')">🌸 Anime</div>
+          <div class="style-chip" onclick="selectStyle(this,'realistic')">📷 Realistic</div>
+          <div class="style-chip" onclick="selectStyle(this,'fantasy')">🔮 Fantasy</div>
+          <div class="style-chip" onclick="selectStyle(this,'3d')">🎮 3D Art</div>
+        </div>
+        <div class="input-row">
+          <input class="studio-input" id="textPrompt" type="text" placeholder="e.g. A futuristic city at sunset with flying cars..."/>
+          <button class="gen-btn" id="genBtn" onclick="generateImage()">Generate ✨</button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-image">
+        <div class="upload-area" onclick="document.getElementById('imgUpload').click()">
+          <input type="file" id="imgUpload" accept="image/*" onchange="previewImg(event)"/>
+          <div style="font-size:2rem;margin-bottom:0.5rem">📁</div>
+          <div style="color:var(--muted);font-size:0.9rem">Click to upload an image<br/><small>PNG, JPG, WEBP</small></div>
+          <img class="upload-preview" id="uploadPreview"/>
+        </div>
+        <div class="input-row">
+          <input class="studio-input" id="remixPrompt" type="text" placeholder="Describe new style or changes..."/>
+          <button class="gen-btn" id="remixBtn" onclick="remixImage()">Remix ✨</button>
+        </div>
+      </div>
+
+      <div class="result-area" id="resultArea">
+        <div class="result-placeholder" id="placeholder">
+          <div class="icon">🎨</div>
+          <div>Your AI generated image appears here</div>
+          <div style="font-size:0.78rem;margin-top:0.4rem;color:#5050a0">Powered by FLUX.1 Schnell AI</div>
+        </div>
+        <div class="progress-wrap" id="progressWrap">
+          <div style="font-size:1.8rem">⚡</div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-label" id="progressLabel">Connecting to AI...</div>
+          <div class="progress-steps">
+            <div class="progress-step" id="s1">🔌 Connecting</div>
+            <div class="progress-step" id="s2">🧠 Processing</div>
+            <div class="progress-step" id="s3">🎨 Generating</div>
+            <div class="progress-step" id="s4">✨ Finishing</div>
+          </div>
+        </div>
+        <img class="result-image" id="resultImg"/>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="result-actions" id="resultActions">
+        <button class="action-btn action-dl" id="dlBtn">⬇️ Download HD</button>
+        <button class="action-btn action-re" onclick="resetStudio()">🔄 Generate Again</button>
+        <button class="action-btn action-re" onclick="openModal()">🚀 Get Full Access</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="section-label">Features</div>
+  <h2>Everything You Need to Create</h2>
+  <p class="section-sub">Professional AI generation tools packed into one simple platform.</p>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(124,58,255,0.15)">✍️</div><h3>Text to Image</h3><p>Describe any scene and our FLUX.1 AI brings it to life with stunning photorealistic detail.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,58,140,0.15)">🖼️</div><h3>Image Remix</h3><p>Upload any image and transform it with AI into a completely new style or variation.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(58,255,218,0.15)">⚡</div><h3>Lightning Fast</h3><p>Get stunning results in under 30 seconds powered by the latest AI models.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(124,58,255,0.15)">🎨</div><h3>Multiple Styles</h3><p>Cinematic, anime, realistic, fantasy, 3D — switch between styles instantly.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,58,140,0.15)">📱</div><h3>HD Quality</h3><p>Every image generated in high definition quality, ready to share anywhere.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(58,255,218,0.15)">🔒</div><h3>Full Ownership</h3><p>Every image you create is 100% yours. Commercial use allowed on paid plans.</p></div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2>Simple, Transparent Pricing</h2>
+  <p class="section-sub">Start free. Upgrade when ready. Cancel anytime.</p>
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">₹0 <span>/month</span></div>
+      <div class="plan-desc">Perfect to get started</div>
+      <ul class="plan-features"><li>3 images/month</li><li>Text to Image</li><li>Standard quality</li><li>Watermarked</li></ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Get Started</button>
+    </div>
+    <div class="pricing-card popular">
+      <div class="popular-badge">⭐ Most Popular</div>
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">₹299 <span>/month</span></div>
+      <div class="plan-desc">For content creators</div>
+      <ul class="plan-features"><li>50 images/month</li><li>Text + Image Remix</li><li>HD quality</li><li>No watermark</li><li>All styles</li></ul>
+      <button class="plan-btn plan-btn-filled" onclick="openModal()">Start Now</button>
+    </div>
+    <div class="pricing-card">
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">₹799 <span>/month</span></div>
+      <div class="plan-desc">For power users</div>
+      <ul class="plan-features"><li>200 images/month</li><li>All generation types</li><li>4K quality</li><li>Priority queue</li><li>Commercial license</li></ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Go Pro</button>
+    </div>
+    <div class="pricing-card">
+      <div class="plan-name">Business</div>
+      <div class="plan-price">₹2,499 <span>/month</span></div>
+      <div class="plan-desc">For teams & agencies</div>
+      <ul class="plan-features"><li>Unlimited images</li><li>API access</li><li>4K + custom sizes</li><li>Team collaboration</li><li>Priority support</li></ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Contact Us</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">VidGenAI</div>
+  <div class="footer-copy">© 2025 VidGenAI. All rights reserved.</div>
+  <div class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></div>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Create Your Account</h3>
+    <p>Start generating AI images for free. No credit card required.</p>
+    <input class="modal-input" type="text" placeholder="Your name"/>
+    <input class="modal-input" type="email" placeholder="Email address"/>
+    <input class="modal-input" type="password" placeholder="Create password"/>
+    <button class="modal-btn">🚀 Create Free Account</button>
+    <p style="text-align:center;color:var(--muted);font-size:0.8rem;margin-top:1rem;">Already have an account? <a href="#" style="color:var(--accent)">Sign in</a></p>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──
+  const HF_TOKEN = "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";
+  const MODELS = [
+    "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+    "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
+  ];
+
+  const styleMap = {
+    cinematic: "cinematic film still, dramatic lighting, anamorphic, 8k uhd, sharp",
+    anime: "anime style, studio ghibli, vibrant colors, highly detailed illustration",
+    realistic: "photorealistic, hyperdetailed, DSLR photo, 85mm lens, sharp focus",
+    fantasy: "fantasy art, magical atmosphere, epic lighting, detailed concept art",
+    "3d": "3d render, octane render, ultra detailed, blender, ray tracing, 8k"
+  };
+
+  let selectedStyle = "cinematic";
+  let currentUrl = null;
+  let modelIndex = 0;
+
+  function switchTab(e, tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    resetStudio();
+  }
+
+  function selectStyle(el, style) {
+    document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    selectedStyle = style;
+  }
+
+  function previewImg(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const preview = document.getElementById('uploadPreview');
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  }
+
+  function showProgress() {
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('resultImg').style.display = 'none';
+    document.getElementById('resultActions').classList.remove('show');
+    document.getElementById('errorBox').classList.remove('show');
+    document.getElementById('progressWrap').classList.add('show');
+    setProgress(0, 'Starting AI engine...');
+    setStep(1);
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = label;
+  }
+
+  function setStep(n) {
+    for (let i = 1; i <= 4; i++) {
+      const s = document.getElementById('s' + i);
+      s.classList.remove('active', 'done');
+      if (i < n) s.classList.add('done');
+      if (i === n) s.classList.add('active');
+    }
+  }
+
+  function hideProgress() {
+    document.getElementById('progressWrap').classList.remove('show');
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function tryGenerate(prompt) {
+    // Try each model until one works
+    for (let i = 0; i < MODELS.length; i++) {
+      try {
+        setProgress(20 + i * 15, `Trying AI model ${i + 1}...`);
+        const res = await fetch(MODELS[i], {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${HF_TOKEN}`,
+            "Content-Type": "application/json",
+            "x-use-cache": "false"
+          },
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: { num_inference_steps: 4, guidance_scale: 3.5 }
+          })
+        });
+
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 1000) return URL.createObjectURL(blob);
+        }
+
+        const err = await res.json().catch(() => ({}));
+        if (err.error && err.error.includes('loading')) {
+          // Model loading - wait and retry this model once
+          setProgress(40, '⏳ Model warming up, waiting 20s...');
+          await sleep(20000);
+          const res2 = await fetch(MODELS[i], {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${HF_TOKEN}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ inputs: prompt, parameters: { num_inference_steps: 4 } })
+          });
+          if (res2.ok) {
+            const blob2 = await res2.blob();
+            if (blob2.size > 1000) return URL.createObjectURL(blob2);
+          }
+        }
+      } catch (e) {
+        console.log('Model', i, 'failed:', e.message);
+      }
+    }
+    throw new Error('All AI models are currently busy. Please wait 1 minute and try again!');
+  }
+
+  async function generateImage() {
+    const prompt = document.getElementById('textPrompt').value.trim();
+    if (!prompt) { document.getElementById('textPrompt').focus(); return; }
+
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    showProgress();
+
+    const fullPrompt = `${prompt}, ${styleMap[selectedStyle]}, masterpiece, best quality`;
+
+    try {
+      setProgress(10, 'Connecting to FLUX.1 AI...');
+      setStep(2);
+      await sleep(300);
+      setProgress(30, 'Processing your prompt...');
+      setStep(3);
+
+      const url = await tryGenerate(fullPrompt);
+
+      setProgress(95, 'Almost done...');
+      setStep(4);
+      await sleep(300);
+      setProgress(100, '✨ Image ready!');
+      await sleep(400);
+
+      hideProgress();
+      const img = document.getElementById('resultImg');
+      img.src = url;
+      img.style.display = 'block';
+      currentUrl = url;
+      document.getElementById('resultActions').classList.add('show');
+      document.getElementById('dlBtn').onclick = () => dl(url, 'vidgenai.png');
+
+    } catch (err) {
+      hideProgress();
+      document.getElementById('placeholder').style.display = 'block';
+      showErr('⚠️ ' + err.message + '\n\nTip: Try a simpler prompt or wait 30 seconds and try again!');
+    }
+    btn.disabled = false;
+  }
+
+  async function remixImage() {
+    const prompt = document.getElementById('remixPrompt').value.trim() || 'beautiful, high quality, detailed';
+    const btn = document.getElementById('remixBtn');
+    btn.disabled = true;
+    showProgress();
+
+    const fullPrompt = `${prompt}, ${styleMap[selectedStyle]}, masterpiece`;
+
+    try {
+      setProgress(15, 'Processing...');
+      setStep(2);
+      const url = await tryGenerate(fullPrompt);
+      setProgress(100, '✨ Done!');
+      await sleep(400);
+      hideProgress();
+      const img = document.getElementById('resultImg');
+      img.src = url;
+      img.style.display = 'block';
+      currentUrl = url;
+      document.getElementById('resultActions').classList.add('show');
+      document.getElementById('dlBtn').onclick = () => dl(url, 'vidgenai-remix.png');
+    } catch (err) {
+      hideProgress();
+      document.getElementById('placeholder').style.display = 'block';
+      showErr('⚠️ ' + err.message);
+    }
+    btn.disabled = false;
+  }
+
+  function showErr(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = msg;
+    box.classList.add('show');
+  }
+
+  function dl(url, name) {
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+  }
+
+  function resetStudio() {
+    document.getElementById('placeholder').style.display = 'flex';
+    document.getElementById('resultImg').style.display = 'none';
+    document.getElementById('progressWrap').classList.remove('show');
+    document.getElementById('resultActions').classList.remove('show');
+    document.getElementById('errorBox').classList.remove('show');
+    currentUrl = null;
+  }
+
+  function openModal() { document.getElementById('modalOverlay').classList.add('active'); }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+  function closeModalOutside(e) { if (e.target.id === 'modalOverlay') closeModal(); }
+
+  document.getElementById('textPrompt').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generateImage();
+  });
+</script>
+</body>
+</html>
