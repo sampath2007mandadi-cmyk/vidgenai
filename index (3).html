@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VidGenAI — AI Image Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080810; --surface: #0f0f1a; --card: #13131f;
+      --border: rgba(255,255,255,0.07); --accent: #7c3aff;
+      --accent2: #ff3a8c; --accent3: #3affda;
+      --text: #f0f0ff; --muted: #7070a0;
+      --glow: 0 0 40px rgba(124,58,255,0.3);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9999; opacity: 0.4; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 1.2rem 5%; background: rgba(8,8,16,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; border: none; padding: 0.6rem 1.4rem; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .nav-cta:hover { background: #6929e0; box-shadow: var(--glow); }
+
+    .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8rem 5% 4rem; position: relative; overflow: hidden; }
+    .hero-orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+    .orb1 { width: 500px; height: 500px; background: rgba(124,58,255,0.15); top: -100px; left: -100px; animation: float 8s ease-in-out infinite; }
+    .orb2 { width: 400px; height: 400px; background: rgba(255,58,140,0.1); bottom: -50px; right: -50px; animation: float 10s ease-in-out infinite reverse; }
+    .orb3 { width: 300px; height: 300px; background: rgba(58,255,218,0.08); top: 50%; left: 50%; transform: translate(-50%,-50%); animation: pulse2 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
+    @keyframes pulse2 { 0%,100%{opacity:0.5;transform:translate(-50%,-50%) scale(1)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.2)} }
+
+    .badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(124,58,255,0.15); border: 1px solid rgba(124,58,255,0.3); color: #a78bfa; padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.8rem; font-weight: 500; margin-bottom: 2rem; animation: fadeUp 0.6s ease both; }
+    .badge-dot { width: 6px; height: 6px; background: var(--accent3); border-radius: 50%; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.8rem, 7vw, 6rem); font-weight: 800; line-height: 1.05; margin-bottom: 1.5rem; animation: fadeUp 0.6s 0.1s ease both; }
+    h1 .grad { background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { max-width: 560px; color: var(--muted); font-size: 1.1rem; margin-bottom: 2.5rem; animation: fadeUp 0.6s 0.2s ease both; }
+    .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; animation: fadeUp 0.6s 0.3s ease both; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 0.9rem 2rem; border-radius: 10px; font-size: 1rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.3s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(124,58,255,0.4); }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 0.9rem 2rem; border-radius: 10px; font-size: 1rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.3s; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    .stats { padding: 4rem 5%; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto; text-align: center; }
+    .stat-num { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .stat-label { color: var(--muted); font-size: 0.9rem; }
+
+    .studio-section { padding: 5rem 5%; background: var(--surface); }
+    .section-label { text-align: center; color: var(--accent); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 1rem; }
+    h2 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; text-align: center; margin-bottom: 1rem; }
+    .section-sub { text-align: center; color: var(--muted); max-width: 500px; margin: 0 auto 3rem; }
+
+    .studio-wrap { max-width: 860px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.5); }
+    .studio-bar { background: var(--bg); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .d1{background:#ff5f57}.d2{background:#ffbd2e}.d3{background:#28c840}
+    .studio-title { margin: 0 auto; color: var(--muted); font-size: 0.85rem; }
+    .studio-body { padding: 2rem; }
+
+    .style-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+    .style-chip { padding: 0.4rem 0.9rem; border-radius: 100px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+    .style-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(124,58,255,0.1); }
+
+    .input-row { display: flex; gap: 0.8rem; margin-bottom: 1rem; }
+    .studio-input { flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.9rem 1.2rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+    .studio-input:focus { border-color: var(--accent); }
+    .studio-input::placeholder { color: var(--muted); }
+    .gen-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 0.9rem 1.5rem; border-radius: 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; transition: all 0.2s; white-space: nowrap; font-size: 1rem; }
+    .gen-btn:hover { transform: translateY(-2px); box-shadow: var(--glow); }
+    .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .result-area { background: var(--surface); border-radius: 12px; min-height: 300px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); position: relative; overflow: hidden; margin-top: 1rem; flex-direction: column; }
+    .placeholder { text-align: center; color: var(--muted); padding: 2rem; }
+    .placeholder .icon { font-size: 3rem; margin-bottom: 0.8rem; }
+
+    .spinner-wrap { display: none; flex-direction: column; align-items: center; gap: 1.2rem; padding: 2rem; }
+    .spinner-wrap.show { display: flex; }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .spinner-label { color: var(--muted); font-size: 0.9rem; text-align: center; }
+    .spinner-sub { color: #5050a0; font-size: 0.78rem; text-align: center; }
+
+    .result-img { width: 100%; border-radius: 12px; display: none; cursor: pointer; transition: transform 0.2s; }
+    .result-img:hover { transform: scale(1.01); }
+
+    .result-actions { display: none; gap: 0.8rem; margin-top: 1rem; justify-content: center; flex-wrap: wrap; }
+    .result-actions.show { display: flex; }
+    .action-btn { padding: 0.7rem 1.3rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; border: none; font-weight: 500; }
+    .action-dl { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .action-dl:hover { transform: translateY(-2px); box-shadow: var(--glow); }
+    .action-re { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .action-re:hover { border-color: var(--accent); color: var(--accent); }
+
+    .error-box { background: rgba(255,58,58,0.1); border: 1px solid rgba(255,58,58,0.3); border-radius: 10px; padding: 1rem 1.2rem; color: #ff8080; font-size: 0.85rem; margin-top: 1rem; display: none; line-height: 1.6; }
+    .error-box.show { display: block; }
+
+    .api-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(58,255,218,0.1); border: 1px solid rgba(58,255,218,0.2); color: var(--accent3); padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.75rem; margin-bottom: 1.2rem; }
+
+    section.features { padding: 6rem 5%; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+    .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; transition: all 0.3s; }
+    .feature-card:hover { transform: translateY(-4px); border-color: rgba(124,58,255,0.3); }
+    .feature-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.2rem; }
+    .feature-card h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+    section.pricing { padding: 6rem 5%; background: var(--surface); }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; max-width: 1000px; margin: 0 auto; }
+    .pricing-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; position: relative; }
+    .pricing-card.popular { border-color: var(--accent); background: linear-gradient(135deg, rgba(124,58,255,0.1), rgba(255,58,140,0.05)); }
+    .popular-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; padding: 0.3rem 1rem; border-radius: 100px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .plan-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .plan-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.3rem; }
+    .plan-price span { font-size: 1rem; color: var(--muted); font-weight: 400; font-family: 'DM Sans', sans-serif; }
+    .plan-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .plan-features { list-style: none; margin-bottom: 2rem; }
+    .plan-features li { padding: 0.4rem 0; color: var(--muted); font-size: 0.9rem; display: flex; align-items: center; gap: 0.6rem; }
+    .plan-features li::before { content: '✓'; color: var(--accent3); font-weight: 700; }
+    .plan-btn { width: 100%; padding: 0.9rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; }
+    .plan-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .plan-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .plan-btn-filled { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .plan-btn-filled:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(124,58,255,0.4); }
+
+    footer { border-top: 1px solid var(--border); padding: 3rem 5%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .footer-copy { color: var(--muted); font-size: 0.85rem; }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+    .footer-links a:hover { color: var(--text); }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 200; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: 90%; max-width: 420px; position: relative; animation: fadeUp 0.3s ease; }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; }
+    .modal h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .modal-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.9rem 1.2rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; margin-bottom: 1rem; }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-btn { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500; cursor: pointer; }
+
+    @media(max-width:600px){ .nav-links{display:none} footer{flex-direction:column;text-align:center} }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">VidGenAI</div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#studio">Studio</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <button class="nav-cta" onclick="openModal()">Get Started Free</button>
+</nav>
+
+<section class="hero">
+  <div class="hero-orb orb1"></div>
+  <div class="hero-orb orb2"></div>
+  <div class="hero-orb orb3"></div>
+  <div class="badge"><span class="badge-dot"></span> Powered by Advanced AI Models</div>
+  <h1>Generate <span class="grad">Stunning Images</span><br/>with AI in Seconds</h1>
+  <p class="hero-sub">Type any prompt and our AI creates breathtaking images instantly. No skills, no signup needed to try!</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="document.getElementById('studio').scrollIntoView({behavior:'smooth'})">🎨 Try It Free Now</button>
+    <button class="btn-secondary" onclick="openModal()">🚀 Get Full Access</button>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stats-grid">
+    <div><div class="stat-num">50K+</div><div class="stat-label">Images Generated</div></div>
+    <div><div class="stat-num">12K+</div><div class="stat-label">Happy Users</div></div>
+    <div><div class="stat-num">4.9★</div><div class="stat-label">Average Rating</div></div>
+    <div><div class="stat-num">99.9%</div><div class="stat-label">Uptime</div></div>
+  </div>
+</section>
+
+<!-- STUDIO -->
+<section class="studio-section" id="studio">
+  <div class="section-label">Live AI Studio</div>
+  <h2>Try It Right Now — Free</h2>
+  <p class="section-sub">Real AI image generation. Type anything and see it come to life in seconds!</p>
+
+  <div class="studio-wrap">
+    <div class="studio-bar">
+      <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+      <div class="studio-title">VidGenAI Studio ⚡ Live</div>
+    </div>
+    <div class="studio-body">
+      <div class="api-badge">⚡ Instant Generation — No waiting</div>
+
+      <div class="style-row">
+        <div class="style-chip active" onclick="selectStyle(this,'cinematic')">🎬 Cinematic</div>
+        <div class="style-chip" onclick="selectStyle(this,'anime')">🌸 Anime</div>
+        <div class="style-chip" onclick="selectStyle(this,'realistic')">📷 Realistic</div>
+        <div class="style-chip" onclick="selectStyle(this,'fantasy')">🔮 Fantasy</div>
+        <div class="style-chip" onclick="selectStyle(this,'3d')">🎮 3D Art</div>
+        <div class="style-chip" onclick="selectStyle(this,'watercolor')">🎨 Watercolor</div>
+      </div>
+
+      <div class="input-row">
+        <input class="studio-input" id="prompt" type="text" placeholder="e.g. A beautiful sunset over mountains with golden light..."/>
+        <button class="gen-btn" id="genBtn" onclick="generate()">Generate ✨</button>
+      </div>
+
+      <div class="result-area" id="resultArea">
+        <div class="placeholder" id="placeholder">
+          <div class="icon">🎨</div>
+          <div style="font-size:1rem;margin-bottom:0.3rem">Your AI image appears here</div>
+          <div style="font-size:0.8rem;color:#5050a0">Type a prompt above and click Generate!</div>
+        </div>
+        <div class="spinner-wrap" id="spinnerWrap">
+          <div class="spinner"></div>
+          <div class="spinner-label" id="spinnerLabel">Generating your image...</div>
+          <div class="spinner-sub">Usually takes 5-15 seconds ⚡</div>
+        </div>
+        <img class="result-img" id="resultImg" onclick="openFull()"/>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="result-actions" id="resultActions">
+        <button class="action-btn action-dl" onclick="downloadImg()">⬇️ Download HD</button>
+        <button class="action-btn action-re" onclick="generate()">🔄 Regenerate</button>
+        <button class="action-btn action-re" onclick="resetStudio()">✏️ New Prompt</button>
+        <button class="action-btn action-re" onclick="openModal()">🚀 Get Full Access</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="section-label">Features</div>
+  <h2>Everything You Need</h2>
+  <p class="section-sub">Professional AI image generation tools packed into one platform.</p>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(124,58,255,0.15)">✍️</div><h3>Text to Image</h3><p>Describe any scene and our AI brings it to life with stunning photorealistic detail instantly.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,58,140,0.15)">⚡</div><h3>Instant Results</h3><p>No waiting, no queues. Your image is generated in seconds using our optimized AI pipeline.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(58,255,218,0.15)">🎨</div><h3>6 Art Styles</h3><p>Cinematic, anime, realistic, fantasy, 3D, watercolor — switch styles with one click.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(124,58,255,0.15)">📱</div><h3>HD Quality</h3><p>Every image generated in high definition, ready to download and use anywhere.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,58,140,0.15)">🔒</div><h3>Full Ownership</h3><p>Every image you create is 100% yours with commercial use rights on paid plans.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(58,255,218,0.15)">🌍</div><h3>No Signup Needed</h3><p>Try it instantly for free. No account required. Just type and generate!</p></div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2>Simple Pricing</h2>
+  <p class="section-sub">Start free. Upgrade when ready. Cancel anytime.</p>
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">₹0 <span>/month</span></div>
+      <div class="plan-desc">Perfect to get started</div>
+      <ul class="plan-features"><li>5 images/day</li><li>Standard quality</li><li>All 6 styles</li><li>Watermarked</li></ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Get Started</button>
+    </div>
+    <div class="pricing-card popular">
+      <div class="popular-badge">⭐ Most Popular</div>
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">₹299 <span>/month</span></div>
+      <div class="plan-desc">For content creators</div>
+      <ul class="plan-features"><li>100 images/month</li><li>HD quality</li><li>No watermark</li><li>All styles</li><li>Priority speed</li></ul>
+      <button class="plan-btn plan-btn-filled" onclick="openModal()">Start Now</button>
+    </div>
+    <div class="pricing-card">
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">₹799 <span>/month</span></div>
+      <div class="plan-desc">For power users</div>
+      <ul class="plan-features"><li>500 images/month</li><li>4K quality</li><li>Commercial license</li><li>Priority queue</li><li>API access</li></ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Go Pro</button>
+    </div>
+    <div class="pricing-card">
+      <div class="plan-name">Business</div>
+      <div class="plan-price">₹2,499 <span>/month</span></div>
+      <div class="plan-desc">For teams & agencies</div>
+      <ul class="plan-features"><li>Unlimited images</li><li>4K + custom sizes</li><li>Team accounts</li><li>White label</li><li>Priority support</li></ul>
+      <button class="plan-btn plan-btn-outline" onclick="openModal()">Contact Us</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">VidGenAI</div>
+  <div class="footer-copy">© 2025 VidGenAI. All rights reserved.</div>
+  <div class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></div>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Create Your Account</h3>
+    <p>Start generating AI images for free. No credit card required.</p>
+    <input class="modal-input" type="text" placeholder="Your name"/>
+    <input class="modal-input" type="email" placeholder="Email address"/>
+    <input class="modal-input" type="password" placeholder="Create password"/>
+    <button class="modal-btn">🚀 Create Free Account</button>
+    <p style="text-align:center;color:var(--muted);font-size:0.8rem;margin-top:1rem;">Already have an account? <a href="#" style="color:var(--accent)">Sign in</a></p>
+  </div>
+</div>
+
+<script>
+  // ── Pollinations AI — 100% free, no token, no CORS issues ──
+  const styleMap = {
+    cinematic: "cinematic film still, dramatic lighting, anamorphic lens, 8k uhd, sharp focus",
+    anime: "anime style, studio ghibli, vibrant colors, highly detailed, cel shading",
+    realistic: "photorealistic, hyperdetailed, DSLR photo, 85mm lens, natural lighting",
+    fantasy: "fantasy art, magical atmosphere, epic lighting, detailed concept art, mystical",
+    "3d": "3d render, octane render, ultra detailed, blender, ray tracing, subsurface scattering",
+    watercolor: "watercolor painting, soft brushstrokes, artistic, pastel colors, delicate"
+  };
+
+  let selectedStyle = "cinematic";
+  let currentPrompt = "";
+  let currentImgUrl = "";
+
+  function selectStyle(el, style) {
+    document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    selectedStyle = style;
+  }
+
+  async function generate() {
+    const prompt = document.getElementById('prompt').value.trim();
+    if (!prompt) { document.getElementById('prompt').focus(); return; }
+
+    currentPrompt = prompt;
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+
+    // Show spinner
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('resultImg').style.display = 'none';
+    document.getElementById('resultActions').classList.remove('show');
+    document.getElementById('errorBox').classList.remove('show');
+    document.getElementById('spinnerWrap').classList.add('show');
+    document.getElementById('spinnerLabel').textContent = 'Generating your image...';
+
+    const fullPrompt = encodeURIComponent(`${prompt}, ${styleMap[selectedStyle]}, masterpiece, best quality`);
+    const seed = Math.floor(Math.random() * 999999);
+
+    // Pollinations AI — free, instant, no token needed!
+    const url = `https://image.pollinations.ai/prompt/${fullPrompt}?width=1024&height=1024&seed=${seed}&nologo=true&enhance=true`;
+
+    try {
+      currentImgUrl = url;
+      const img = document.getElementById('resultImg');
+
+      img.onload = () => {
+        document.getElementById('spinnerWrap').classList.remove('show');
+        img.style.display = 'block';
+        document.getElementById('resultActions').classList.add('show');
+        btn.disabled = false;
+      };
+
+      img.onerror = () => {
+        document.getElementById('spinnerWrap').classList.remove('show');
+        document.getElementById('placeholder').style.display = 'block';
+        showErr('Generation failed. Please try again with a different prompt!');
+        btn.disabled = false;
+      };
+
+      img.src = url;
+
+    } catch (err) {
+      document.getElementById('spinnerWrap').classList.remove('show');
+      document.getElementById('placeholder').style.display = 'block';
+      showErr('Something went wrong. Please try again!');
+      btn.disabled = false;
+    }
+  }
+
+  function downloadImg() {
+    if (!currentImgUrl) return;
+    const a = document.createElement('a');
+    a.href = currentImgUrl;
+    a.download = 'vidgenai-' + Date.now() + '.png';
+    a.target = '_blank';
+    a.click();
+  }
+
+  function openFull() {
+    if (currentImgUrl) window.open(currentImgUrl, '_blank');
+  }
+
+  function showErr(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = '⚠️ ' + msg;
+    box.classList.add('show');
+  }
+
+  function resetStudio() {
+    document.getElementById('placeholder').style.display = 'flex';
+    document.getElementById('resultImg').style.display = 'none';
+    document.getElementById('spinnerWrap').classList.remove('show');
+    document.getElementById('resultActions').classList.remove('show');
+    document.getElementById('errorBox').classList.remove('show');
+    document.getElementById('prompt').value = '';
+    document.getElementById('prompt').focus();
+    currentImgUrl = '';
+  }
+
+  function openModal() { document.getElementById('modalOverlay').classList.add('active'); }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+  function closeModalOutside(e) { if (e.target.id === 'modalOverlay') closeModal(); }
+
+  document.getElementById('prompt').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generate();
+  });
+</script>
+</body>
+</html>
