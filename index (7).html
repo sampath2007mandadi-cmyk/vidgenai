@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VidGenAI — AI Image Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#07070f;--surface:#0e0e1a;--card:#12121e;--border:rgba(255,255,255,0.06);--accent:#6d28d9;--accent2:#ec4899;--accent3:#10b981;--text:#f0f0ff;--muted:#6b7280;--glow:0 0 40px rgba(109,40,217,0.35)}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+    .page{display:none;min-height:100vh}.page.active{display:block}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1rem 5%;background:rgba(7,7,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;background:linear-gradient(135deg,#a78bfa,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;cursor:pointer}
+    .nr{display:flex;gap:.8rem}
+    .nb{padding:.5rem 1.2rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.9rem;cursor:pointer;transition:all .2s;border:none;font-weight:500}
+    .ng{background:transparent;color:var(--muted);border:1px solid var(--border)}.ng:hover{color:var(--text);border-color:var(--accent)}
+    .ns{background:var(--accent);color:#fff}.ns:hover{background:#5b21b6}
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8rem 5% 5rem;position:relative;overflow:hidden}
+    .orb{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none}
+    .o1{width:600px;height:600px;background:rgba(109,40,217,0.12);top:-150px;left:-150px;animation:of 10s ease-in-out infinite}
+    .o2{width:500px;height:500px;background:rgba(236,72,153,0.08);bottom:-100px;right:-100px;animation:of 13s ease-in-out infinite reverse}
+    @keyframes of{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-30px)}}
+    .hbadge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(109,40,217,0.15);border:1px solid rgba(109,40,217,0.3);color:#a78bfa;padding:.4rem 1rem;border-radius:100px;font-size:.78rem;font-weight:600;margin-bottom:2rem}
+    .bp{width:6px;height:6px;background:var(--accent3);border-radius:50%;animation:bl 1.5s infinite}
+    @keyframes bl{0%,100%{opacity:1}50%{opacity:0.3}}
+    h1{font-family:'Syne',sans-serif;font-size:clamp(3rem,7vw,6.5rem);font-weight:800;line-height:1.0;margin-bottom:1.5rem}
+    .gt{background:linear-gradient(135deg,#a78bfa 0%,var(--accent2) 50%,var(--accent3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hsub{max-width:540px;color:var(--muted);font-size:1.1rem;margin-bottom:2.5rem;line-height:1.7}
+    .hacts{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+    .bm{padding:1rem 2.2rem;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .3s}
+    .bm:hover{transform:translateY(-3px);box-shadow:0 15px 40px rgba(109,40,217,0.4)}
+    .bo{padding:1rem 2.2rem;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text);border:1px solid var(--border);transition:all .3s}
+    .bo:hover{border-color:var(--accent);color:#a78bfa}
+    .srow{padding:3rem 5%;display:flex;justify-content:center;gap:4rem;flex-wrap:wrap;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface)}
+    .stat{text-align:center}
+    .sn{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,#a78bfa,var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .sl{color:var(--muted);font-size:.85rem;margin-top:.2rem}
+    .features{padding:6rem 5%}
+    .slbl{text-align:center;color:var(--accent3);font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem}
+    h2{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:800;text-align:center;margin-bottom:.8rem}
+    .ssub{text-align:center;color:var(--muted);max-width:480px;margin:0 auto 3.5rem;font-size:.95rem}
+    .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem;max-width:1000px;margin:0 auto}
+    .fc{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.8rem;transition:all .3s}
+    .fc:hover{transform:translateY(-4px);border-color:rgba(109,40,217,0.3)}
+    .fi{font-size:1.8rem;margin-bottom:1rem}
+    .fc h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.4rem}
+    .fc p{color:var(--muted);font-size:.85rem;line-height:1.6}
+    .pricing{padding:6rem 5%;background:var(--surface)}
+    .pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem;max-width:950px;margin:0 auto}
+    .pc{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;position:relative;transition:all .3s}
+    .pc:hover{transform:translateY(-4px)}
+    .pc.hot{border-color:var(--accent);background:linear-gradient(135deg,rgba(109,40,217,0.08),rgba(236,72,153,0.04))}
+    .hbg{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:.25rem 1rem;border-radius:100px;font-size:.72rem;font-weight:700;white-space:nowrap}
+    .pn{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:.4rem}
+    .pp{font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;margin-bottom:.2rem}
+    .pp small{font-size:.9rem;color:var(--muted);font-weight:400;font-family:'DM Sans',sans-serif}
+    .pd{color:var(--muted);font-size:.8rem;margin-bottom:1.2rem}
+    .pf{list-style:none;margin-bottom:1.5rem}
+    .pf li{padding:.3rem 0;color:var(--muted);font-size:.85rem;display:flex;gap:.5rem}
+    .pf li::before{content:'✓';color:var(--accent3);font-weight:700;flex-shrink:0}
+    .pb{width:100%;padding:.8rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+    .pbo{background:transparent;border:1px solid var(--border);color:var(--text)}.pbo:hover{border-color:var(--accent);color:#a78bfa}
+    .pbf{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}.pbf:hover{transform:translateY(-2px);box-shadow:var(--glow)}
+    footer{border-top:1px solid var(--border);padding:2.5rem 5%;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+    .flo{font-family:'Syne',sans-serif;font-weight:800;background:linear-gradient(135deg,#a78bfa,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .fco{color:var(--muted);font-size:.8rem}
+    .fli{display:flex;gap:1.5rem}
+    .fli a{color:var(--muted);font-size:.8rem;text-decoration:none}
+    .apage{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:var(--bg);position:relative;overflow:hidden}
+    .ao1{position:absolute;width:400px;height:400px;background:rgba(109,40,217,0.1);border-radius:50%;filter:blur(80px);top:-100px;left:-100px}
+    .ao2{position:absolute;width:300px;height:300px;background:rgba(236,72,153,0.08);border-radius:50%;filter:blur(80px);bottom:-50px;right:-50px}
+    .abox{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2.5rem;width:100%;max-width:420px;position:relative;z-index:1;box-shadow:0 40px 80px rgba(0,0,0,0.5)}
+    .alo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;background:linear-gradient(135deg,#a78bfa,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;margin-bottom:.3rem}
+    .asu{text-align:center;color:var(--muted);font-size:.9rem;margin-bottom:2rem}
+    .ata{display:flex;background:var(--surface);border-radius:10px;padding:4px;margin-bottom:1.5rem}
+    .att{flex:1;padding:.6rem;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer;border-radius:8px;transition:all .2s}
+    .att.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+    .ain{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.85rem 1rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;outline:none;margin-bottom:.8rem;transition:border-color .2s}
+    .ain:focus{border-color:var(--accent)}.ain::placeholder{color:var(--muted)}
+    .abtn{width:100%;padding:.9rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;margin-bottom:1rem}
+    .abtn:hover{transform:translateY(-2px);box-shadow:var(--glow)}.abtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .adiv{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;color:var(--muted);font-size:.8rem}
+    .adiv::before,.adiv::after{content:'';flex:1;height:1px;background:var(--border)}
+    .gbtn{width:100%;padding:.85rem;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.6rem;margin-bottom:.5rem}
+    .gbtn:hover{border-color:var(--accent);background:rgba(109,40,217,0.08)}
+    .aerr{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:.8rem 1rem;border-radius:8px;font-size:.85rem;margin-bottom:1rem;display:none}
+    .aerr.show{display:block}
+    .abk{text-align:center;color:var(--muted);font-size:.85rem;margin-top:1rem;cursor:pointer}.abk:hover{color:var(--text)}
+    .dnav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1rem 5%;background:rgba(7,7,15,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+    .dlo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;background:linear-gradient(135deg,#a78bfa,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .dri{display:flex;align-items:center;gap:.8rem}
+    .uav{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;overflow:hidden;flex-shrink:0}
+    .uav img{width:100%;height:100%;object-fit:cover}
+    .unm{font-size:.85rem;color:var(--muted)}
+    .sob{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.4rem .9rem;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;transition:all .2s}
+    .sob:hover{border-color:#ef4444;color:#ef4444}
+    .dash{padding:7rem 5% 4rem;max-width:1000px;margin:0 auto}
+    .dwe{margin-bottom:2rem}
+    .dwe h2{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:.3rem}
+    .dwe p{color:var(--muted);font-size:.95rem}
+    .pban{background:linear-gradient(135deg,rgba(109,40,217,0.15),rgba(236,72,153,0.08));border:1px solid rgba(109,40,217,0.25);border-radius:16px;padding:1.5rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:2rem}
+    .pi h3{font-family:'Syne',sans-serif;font-weight:700;margin-bottom:.2rem}
+    .pi p{color:var(--muted);font-size:.85rem}
+    .upb{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:.7rem 1.5rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:.9rem}
+    .upb:hover{transform:translateY(-2px);box-shadow:var(--glow)}
+    .gen{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:2rem;box-shadow:0 20px 50px rgba(0,0,0,0.3)}
+    .ghd{background:var(--bg);padding:1rem 1.5rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)}
+    .gd{width:11px;height:11px;border-radius:50%}
+    .gd1{background:#ff5f57}.gd2{background:#ffbd2e}.gd3{background:#28c840}
+    .gtl{margin:0 auto;color:var(--muted);font-size:.82rem}
+    .gby{padding:1.8rem}
+    .pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem}
+    .pill{padding:.4rem .85rem;border-radius:100px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:.78rem;cursor:pointer;transition:all .2s}
+    .pill.on{border-color:var(--accent);color:#a78bfa;background:rgba(109,40,217,0.1)}
+    .gro{display:flex;gap:.8rem;margin-bottom:1.2rem}
+    .gin{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.85rem 1.1rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;outline:none;transition:border-color .2s}
+    .gin:focus{border-color:var(--accent)}.gin::placeholder{color:var(--muted)}
+    .ggo{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:.85rem 1.5rem;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;white-space:nowrap;transition:all .2s;font-size:.95rem}
+    .ggo:hover{transform:translateY(-2px);box-shadow:var(--glow)}.ggo:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .rbox{background:var(--surface);border-radius:12px;min-height:300px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);overflow:hidden;position:relative;flex-direction:column}
+    .rph{text-align:center;color:var(--muted);padding:2rem}
+    .rph .ico{font-size:3rem;margin-bottom:.8rem}
+    .sw{display:none;flex-direction:column;align-items:center;gap:1rem;padding:2rem}
+    .sw.on{display:flex}
+    .spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .stx{color:var(--muted);font-size:.85rem;text-align:center}
+    .rim{width:100%;display:none;cursor:pointer;border-radius:12px}
+    .ga{display:none;gap:.7rem;margin-top:1rem;flex-wrap:wrap}
+    .ga.on{display:flex}
+    .act{padding:.6rem 1.1rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;cursor:pointer;border:none;transition:all .2s;font-weight:500}
+    .adl{background:var(--accent);color:#fff}.adl:hover{background:#5b21b6}
+    .are{background:var(--surface);color:var(--text);border:1px solid var(--border)}.are:hover{border-color:var(--accent);color:#a78bfa}
+    .eb{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:.8rem 1rem;color:#f87171;font-size:.82rem;margin-top:.8rem;display:none}
+    .eb.on{display:block}
+    .hse{margin-top:1.5rem}
+    .hse h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted)}
+    .hgr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.8rem}
+    .hi{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s}
+    .hi:hover{transform:scale(1.02);border-color:var(--accent)}
+    .hi img{width:100%;aspect-ratio:1;object-fit:cover}
+    .hip{padding:.5rem .6rem;font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .eh{color:var(--muted);font-size:.85rem;text-align:center;padding:2rem}
+    .lov{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:1rem}
+    .lov.hide{display:none}
+    .llog{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;background:linear-gradient(135deg,#a78bfa,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    @media(max-width:600px){.nr .ng{display:none}footer{flex-direction:column;text-align:center}.gro{flex-direction:column}}
+  </style>
+</head>
+<body>
+
+<div class="lov" id="lov"><div class="llog">VidGenAI</div><div class="spinner"></div></div>
+
+<!-- LANDING -->
+<div class="page active" id="landingPage">
+  <nav>
+    <div class="logo" onclick="go('landingPage')">VidGenAI</div>
+    <div class="nr">
+      <button class="nb ng" onclick="go('authPage')">Sign In</button>
+      <button class="nb ns" onclick="go('authPage')">Get Started Free</button>
+    </div>
+  </nav>
+  <section class="hero">
+    <div class="orb o1"></div><div class="orb o2"></div>
+    <div class="hbadge"><span class="bp"></span>Real AI • Instant • Free to Try</div>
+    <h1>Create <span class="gt">Stunning AI</span><br/>Images Instantly</h1>
+    <p class="hsub">Type any prompt and our AI generates breathtaking images in seconds. Used by 12,000+ creators across India.</p>
+    <div class="hacts">
+      <button class="bm" onclick="go('authPage')">🚀 Start Creating Free</button>
+      <button class="bo" onclick="document.getElementById('feat').scrollIntoView({behavior:'smooth'})">See Features</button>
+    </div>
+  </section>
+  <div class="srow">
+    <div class="stat"><div class="sn">50K+</div><div class="sl">Images Generated</div></div>
+    <div class="stat"><div class="sn">12K+</div><div class="sl">Happy Creators</div></div>
+    <div class="stat"><div class="sn">4.9★</div><div class="sl">Average Rating</div></div>
+    <div class="stat"><div class="sn">₹0</div><div class="sl">To Get Started</div></div>
+  </div>
+  <section class="features" id="feat">
+    <div class="slbl">Why VidGenAI</div><h2>Everything You Need</h2>
+    <p class="ssub">Professional AI image generation made simple.</p>
+    <div class="fgrid">
+      <div class="fc"><div class="fi">⚡</div><h3>Instant Generation</h3><p>Real Stable Diffusion AI generates your image in seconds.</p></div>
+      <div class="fc"><div class="fi">🎨</div><h3>6 Art Styles</h3><p>Cinematic, anime, realistic, fantasy, 3D, watercolor.</p></div>
+      <div class="fc"><div class="fi">📱</div><h3>HD Downloads</h3><p>1024x1024 HD images, ready to use anywhere.</p></div>
+      <div class="fc"><div class="fi">🔒</div><h3>Secure Account</h3><p>Your creations saved securely, accessible anytime.</p></div>
+      <div class="fc"><div class="fi">💰</div><h3>Affordable Plans</h3><p>Start free, upgrade for more. Plans from ₹299/month.</p></div>
+      <div class="fc"><div class="fi">🇮🇳</div><h3>Made for India</h3><p>INR pricing, UPI payments, Indian support.</p></div>
+    </div>
+  </section>
+  <section class="pricing" id="pricing">
+    <div class="slbl">Pricing</div><h2>Simple & Affordable</h2>
+    <p class="ssub">Start free. No credit card needed.</p>
+    <div class="pgrid">
+      <div class="pc"><div class="pn">Free</div><div class="pp">₹0<small>/mo</small></div><div class="pd">Get started</div><ul class="pf"><li>5 images/day</li><li>All styles</li><li>Watermarked</li></ul><button class="pb pbo" onclick="go('authPage')">Get Started</button></div>
+      <div class="pc hot"><div class="hbg">⭐ Popular</div><div class="pn">Starter</div><div class="pp">₹299<small>/mo</small></div><div class="pd">For creators</div><ul class="pf"><li>100 images/month</li><li>HD quality</li><li>No watermark</li><li>Priority speed</li></ul><button class="pb pbf" onclick="go('authPage')">Start Now</button></div>
+      <div class="pc"><div class="pn">Pro</div><div class="pp">₹799<small>/mo</small></div><div class="pd">Power users</div><ul class="pf"><li>500 images/month</li><li>4K quality</li><li>Commercial license</li><li>API access</li></ul><button class="pb pbo" onclick="go('authPage')">Go Pro</button></div>
+      <div class="pc"><div class="pn">Business</div><div class="pp">₹2,499<small>/mo</small></div><div class="pd">For teams</div><ul class="pf"><li>Unlimited images</li><li>Team accounts</li><li>White label</li><li>Priority support</li></ul><button class="pb pbo" onclick="go('authPage')">Contact Us</button></div>
+    </div>
+  </section>
+  <footer>
+    <div class="flo">VidGenAI</div>
+    <div class="fco">© 2025 VidGenAI. All rights reserved.</div>
+    <div class="fli"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></div>
+  </footer>
+</div>
+
+<!-- AUTH -->
+<div class="page" id="authPage">
+  <div class="apage">
+    <div class="ao1"></div><div class="ao2"></div>
+    <div class="abox">
+      <div class="alo">VidGenAI</div>
+      <div class="asu" id="asu">Welcome back!</div>
+      <div class="ata">
+        <button class="att active" id="siT" onclick="sw('si')">Sign In</button>
+        <button class="att" id="suT" onclick="sw('su')">Sign Up</button>
+      </div>
+      <div class="aerr" id="aerr"></div>
+      <div id="siF">
+        <input class="ain" id="siE" type="email" placeholder="Email address"/>
+        <input class="ain" id="siP" type="password" placeholder="Password"/>
+        <button class="abtn" id="siB" onclick="doSI()">Sign In →</button>
+      </div>
+      <div id="suF" style="display:none">
+        <input class="ain" id="suN" type="text" placeholder="Your name"/>
+        <input class="ain" id="suE" type="email" placeholder="Email address"/>
+        <input class="ain" id="suP" type="password" placeholder="Password (min 6 chars)"/>
+        <button class="abtn" id="suB" onclick="doSU()">Create Free Account →</button>
+      </div>
+      <div class="adiv">or</div>
+      <button class="gbtn" onclick="doG()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <div class="abk" onclick="go('landingPage')">← Back to home</div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="dashPage">
+  <nav class="dnav">
+    <div class="dlo">VidGenAI</div>
+    <div class="dri">
+      <div class="uav" id="uav">S</div>
+      <span class="unm" id="unm"></span>
+      <button class="sob" onclick="doSO()">Sign Out</button>
+    </div>
+  </nav>
+  <div class="dash">
+    <div class="dwe">
+      <h2>Hey <span id="wn" class="gt">Creator</span>! 👋</h2>
+      <p>What stunning image will you create today?</p>
+    </div>
+    <div class="pban">
+      <div class="pi"><h3>🆓 Free Plan — 5 images/day</h3><p>Upgrade for HD quality, more images & commercial license</p></div>
+      <button class="upb" onclick="go('landingPage');setTimeout(()=>document.getElementById('pricing').scrollIntoView({behavior:'smooth'}),300)">⚡ Upgrade</button>
+    </div>
+    <div class="gen">
+      <div class="ghd">
+        <div class="gd gd1"></div><div class="gd gd2"></div><div class="gd gd3"></div>
+        <div class="gtl">AI Studio — Stable Diffusion XL ⚡</div>
+      </div>
+      <div class="gby">
+        <div class="pills">
+          <div class="pill on" onclick="sty(this,'cinematic')">🎬 Cinematic</div>
+          <div class="pill" onclick="sty(this,'anime')">🌸 Anime</div>
+          <div class="pill" onclick="sty(this,'realistic')">📷 Realistic</div>
+          <div class="pill" onclick="sty(this,'fantasy')">🔮 Fantasy</div>
+          <div class="pill" onclick="sty(this,'3d')">🎮 3D Art</div>
+          <div class="pill" onclick="sty(this,'watercolor')">🎨 Watercolor</div>
+        </div>
+        <div class="gro">
+          <input class="gin" id="gin" type="text" placeholder="e.g. A dragon flying over neon city at night..."/>
+          <button class="ggo" id="ggo" onclick="gen()">Generate ✨</button>
+        </div>
+        <div class="rbox">
+          <div class="rph" id="rph"><div class="ico">🎨</div><div>Your AI image appears here</div><div style="font-size:.75rem;margin-top:.3rem;color:#3a3a60">Powered by Stable Diffusion XL</div></div>
+          <div class="sw" id="sw"><div class="spinner"></div><div class="stx">Generating with Stable Diffusion XL...<br/><span style="font-size:.75rem;color:#3a3a60">Takes 5-15 seconds</span></div></div>
+          <img class="rim" id="rim" onclick="window.open(this.src,'_blank')"/>
+        </div>
+        <div class="eb" id="eb"></div>
+        <div class="ga" id="ga">
+          <button class="act adl" onclick="dl()">⬇️ Download HD</button>
+          <button class="act are" onclick="gen()">🔄 Regenerate</button>
+          <button class="act are" onclick="clr()">✏️ New Prompt</button>
+        </div>
+      </div>
+    </div>
+    <div class="hse">
+      <h3>Recent Creations</h3>
+      <div id="hgr" class="hgr"><div class="eh">Generate your first image above! 🎨</div></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInWithRedirect,getRedirectResult,GoogleAuthProvider,signOut as fo,onAuthStateChanged,updateProfile}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  const auth=getAuth(initializeApp({apiKey:"AIzaSyDfX0uposFNpbZfJ2eeeIHeGT5ajKzkAsw",authDomain:"vidgenai-5bc3e.firebaseapp.com",projectId:"vidgenai-5bc3e",storageBucket:"vidgenai-5bc3e.firebasestorage.app",messagingSenderId:"465491916294",appId:"1:465491916294:web:f95ae571ac4d669e413587"}));
+  const gp=new GoogleAuthProvider();
+  getRedirectResult(auth).then(r=>{if(r?.user)su(r.user);}).catch(()=>{});
+  onAuthStateChanged(auth,u=>{document.getElementById('lov').classList.add('hide');if(u){su(u);go('dashPage');}});
+  function su(u){const n=u.displayName||u.email.split('@')[0];document.getElementById('unm').textContent=n;document.getElementById('wn').textContent=n.split(' ')[0];const av=document.getElementById('uav');if(u.photoURL){av.innerHTML=`<img src="${u.photoURL}"/>`;}else{av.textContent=n[0].toUpperCase();}}
+  window.doSI=async()=>{const e=document.getElementById('siE').value.trim(),p=document.getElementById('siP').value,b=document.getElementById('siB');if(!e||!p){se('Please fill all fields');return;}b.disabled=true;b.textContent='Signing in...';try{await signInWithEmailAndPassword(auth,e,p);}catch(err){se(fe(err.code));b.disabled=false;b.textContent='Sign In →';}};
+  window.doSU=async()=>{const n=document.getElementById('suN').value.trim(),e=document.getElementById('suE').value.trim(),p=document.getElementById('suP').value,b=document.getElementById('suB');if(!n||!e||!p){se('Please fill all fields');return;}if(p.length<6){se('Password needs 6+ characters');return;}b.disabled=true;b.textContent='Creating...';try{const c=await createUserWithEmailAndPassword(auth,e,p);await updateProfile(c.user,{displayName:n});su(c.user);go('dashPage');}catch(err){se(fe(err.code));b.disabled=false;b.textContent='Create Free Account →';}};
+  window.doG=async()=>{try{await signInWithRedirect(auth,gp);}catch(err){se(fe(err.code));}};
+  window.doSO=async()=>{await fo(auth);go('landingPage');};
+  function fe(c){const m={'auth/user-not-found':'No account with this email','auth/wrong-password':'Wrong password','auth/email-already-in-use':'Email taken — sign in!','auth/invalid-email':'Invalid email','auth/weak-password':'Use 6+ chars','auth/invalid-credential':'Wrong email or password'};return m[c]||'Error. Try again!';}
+  function se(m){const el=document.getElementById('aerr');el.textContent='⚠️ '+m;el.classList.add('show');}
+</script>
+
+<script>
+  const KEY='sk-0Svd4zgE1XwJoqyymyo3jMydl6SRuSPFA8biboCCkH4ughwe';
+  window.go=id=>{document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);document.getElementById('aerr').classList.remove('show');};
+  window.sw=t=>{document.getElementById('siT').classList.toggle('active',t==='si');document.getElementById('suT').classList.toggle('active',t==='su');document.getElementById('siF').style.display=t==='si'?'block':'none';document.getElementById('suF').style.display=t==='su'?'block':'none';document.getElementById('aerr').classList.remove('show');};
+  let cst='cinematic';
+  const sm={cinematic:'cinematic film still, dramatic lighting, anamorphic lens, 8k uhd',anime:'anime style, studio ghibli, vibrant colors, highly detailed',realistic:'photorealistic, hyperdetailed, DSLR photo, natural lighting',fantasy:'fantasy art, magical atmosphere, epic lighting, concept art','3d':'3d render, octane render, ultra detailed, blender, ray tracing',watercolor:'watercolor painting, soft brushstrokes, artistic, pastel colors'};
+  window.sty=(el,s)=>{document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');cst=s;};
+  let cu='',hist=JSON.parse(localStorage.getItem('vg_h')||'[]');
+
+  window.gen=async()=>{
+    const p=document.getElementById('gin').value.trim();
+    if(!p){document.getElementById('gin').focus();return;}
+    const b=document.getElementById('ggo');b.disabled=true;
+    document.getElementById('rph').style.display='none';
+    document.getElementById('rim').style.display='none';
+    document.getElementById('ga').classList.remove('on');
+    document.getElementById('eb').classList.remove('on');
+    document.getElementById('sw').classList.add('on');
+    try{
+      const r=await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+KEY},
+        body:JSON.stringify({text_prompts:[{text:`${p}, ${sm[cst]}, masterpiece, best quality`,weight:1},{text:'blurry, bad quality, deformed, ugly',weight:-1}],cfg_scale:7,height:1024,width:1024,steps:30,samples:1})
+      });
+      if(!r.ok){const e=await r.json();throw new Error(e.message||'API error '+r.status);}
+      const d=await r.json();
+      const url='data:image/png;base64,'+d.artifacts[0].base64;
+      cu=url;
+      const img=document.getElementById('rim');
+      img.src=url;img.style.display='block';
+      document.getElementById('sw').classList.remove('on');
+      document.getElementById('ga').classList.add('on');
+      b.disabled=false;
+      hist.unshift({p,url,t:Date.now()});
+      if(hist.length>12)hist=hist.slice(0,12);
+      localStorage.setItem('vg_h',JSON.stringify(hist));
+      rh();
+    }catch(e){
+      document.getElementById('sw').classList.remove('on');
+      document.getElementById('rph').style.display='block';
+      const eb=document.getElementById('eb');
+      eb.textContent='⚠️ '+e.message;
+      eb.classList.add('on');
+      b.disabled=false;
+    }
+  };
+
+  window.dl=()=>{if(!cu)return;const a=document.createElement('a');a.href=cu;a.download='vidgenai-'+Date.now()+'.png';a.click();};
+  window.clr=()=>{document.getElementById('rph').style.display='flex';document.getElementById('rim').style.display='none';document.getElementById('sw').classList.remove('on');document.getElementById('ga').classList.remove('on');document.getElementById('eb').classList.remove('on');document.getElementById('gin').value='';document.getElementById('gin').focus();cu='';};
+  function rh(){const g=document.getElementById('hgr');if(!hist.length){g.innerHTML='<div class="eh">Generate your first image! 🎨</div>';return;}g.innerHTML=hist.map(i=>`<div class="hi"><img src="${i.url}" loading="lazy"/><div class="hip">${i.p}</div></div>`).join('');}
+  document.getElementById('gin').addEventListener('keydown',e=>{if(e.key==='Enter')window.gen();});
+  rh();
+</script>
+</body>
+</html>
